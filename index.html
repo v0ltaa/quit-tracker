@@ -1,0 +1,319 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, viewport-fit=cover">
+<title>Quit Tracker</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&family=IBM+Plex+Sans:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --bg:#0C1310;
+    --bg-2:#101914;
+    --fg:#ECE9E2;
+    --fg-dim:#8E978F;
+    --line:#22302A;
+    --addi:#7FD9B6;
+    --josh:#E8AC5E;
+    --jess:#C98CE0;
+  }
+  *{box-sizing:border-box; -webkit-tap-highlight-color:transparent;}
+  html,body{margin:0; padding:0; height:100%; background:var(--bg); color:var(--fg); overflow:hidden;
+    font-family:'IBM Plex Sans', sans-serif;}
+  body{position:fixed; inset:0;}
+  .app{position:absolute; inset:0; display:flex; width:200%; height:100%;
+    transition:transform .38s cubic-bezier(.22,.68,.36,1); will-change:transform;}
+  .page{width:50%; height:100%; position:relative; overflow:hidden;}
+  #page-timeline{overflow-y:auto; -webkit-overflow-scrolling:touch;}
+
+  /* ---------- Page 1: dashboard ---------- */
+  .thirds{height:100%; display:flex; flex-direction:column;}
+  .third{
+    flex:1; min-height:0; display:flex; flex-direction:column; justify-content:center;
+    padding:18px 22px; border-bottom:1px solid var(--line); position:relative;
+    border-left:3px solid var(--pcolor);
+  }
+  .third:last-child{border-bottom:none;}
+  .p-name{font-size:15px; font-weight:500; color:var(--pcolor); margin:0 0 6px;}
+  .p-state{font-size:12px; color:var(--fg-dim); margin:0 0 10px; letter-spacing:.01em;}
+  .p-timer{
+    font-family:'IBM Plex Mono', monospace; font-variant-numeric:tabular-nums;
+    font-size:clamp(26px, 8.6vw, 40px); font-weight:500; line-height:1.05; margin:0 0 4px;
+    display:flex; align-items:baseline; gap:9px; flex-wrap:wrap;
+  }
+  .p-timer .unit{font-size:.36em; color:var(--fg-dim); font-family:'IBM Plex Sans', sans-serif; margin-right:2px;}
+  .p-savings{font-size:15px; color:var(--fg-dim); margin-top:4px;}
+  .p-savings b{color:var(--fg); font-family:'IBM Plex Mono', monospace; font-weight:500; font-variant-numeric:tabular-nums;}
+
+  .ticker{
+    position:absolute; left:0; right:0; bottom:0;
+    padding:11px 22px calc(11px + env(safe-area-inset-bottom, 0px));
+    background:rgba(12,19,16,.86); backdrop-filter:blur(6px);
+    border-top:1px solid var(--line);
+    font-size:13px; color:var(--fg-dim); min-height:20px;
+  }
+  .ticker span{display:inline-block; opacity:0; transform:translateY(4px);
+    animation:tickIn .5s ease forwards;}
+  @keyframes tickIn{to{opacity:1; transform:none;}}
+
+  .swipe-hint{
+    position:absolute; top:50%; right:8px; transform:translateY(-50%);
+    color:var(--fg-dim); font-size:20px; opacity:.35; pointer-events:none;
+    animation:hint 2.6s ease-in-out infinite;
+  }
+  @keyframes hint{0%,100%{opacity:.15; transform:translateY(-50%) translateX(0);} 50%{opacity:.5; transform:translateY(-50%) translateX(-4px);}}
+
+  .dots{position:absolute; top:calc(10px + env(safe-area-inset-top,0px)); left:50%; transform:translateX(-50%);
+    display:flex; gap:6px; z-index:5;}
+  .dot{width:5px; height:5px; border-radius:50%; background:var(--fg-dim); opacity:.35;}
+  .dot.on{opacity:.95; background:var(--fg);}
+
+  /* ---------- Page 2: timeline ---------- */
+  .tl-wrap{padding:calc(26px + env(safe-area-inset-top,0px)) 22px 60px; max-width:640px; margin:0 auto;}
+  .tl-head{font-size:19px; font-weight:600; margin:0 0 3px;}
+  .tl-sub{font-size:13px; color:var(--fg-dim); margin:0 0 22px; line-height:1.5;}
+  .tl-notstarted{margin-bottom:22px; display:flex; flex-direction:column; gap:8px;}
+  .ns-chip{
+    font-size:13px; padding:9px 12px; border:1px solid var(--line); border-radius:2px;
+    display:flex; justify-content:space-between; gap:10px; color:var(--fg-dim);
+  }
+  .ns-chip b{color:var(--fg); font-weight:500;}
+  .ns-chip .t{font-family:'IBM Plex Mono', monospace; font-variant-numeric:tabular-nums; color:var(--fg);}
+
+  .tl-line{position:relative; padding-left:22px;}
+  .tl-line::before{
+    content:''; position:absolute; left:5px; top:6px; bottom:6px; width:1px; background:var(--line);
+  }
+  .node{position:relative; padding:0 0 26px 18px;}
+  .node::before{
+    content:''; position:absolute; left:-18px; top:4px; width:9px; height:9px; border-radius:50%;
+    background:var(--bg); border:1px solid var(--fg-dim);
+  }
+  .node.reached::before{background:var(--fg); border-color:var(--fg);}
+  .node-t{font-family:'IBM Plex Mono', monospace; font-size:11px; color:var(--fg-dim); margin:0 0 3px;}
+  .node-title{font-size:15px; font-weight:500; margin:0 0 5px;}
+  .node-blurb{font-size:13px; color:var(--fg-dim); line-height:1.5; margin:0;}
+  .node-people{display:flex; gap:6px; flex-wrap:wrap; margin-top:9px;}
+  .chip{
+    font-size:12px; padding:4px 9px; border-radius:2px; font-weight:500;
+    background:color-mix(in srgb, var(--ccolor) 16%, transparent);
+    color:var(--ccolor); border:1px solid color-mix(in srgb, var(--ccolor) 40%, transparent);
+  }
+</style>
+</head>
+<body>
+
+<div class="app" id="app">
+
+  <div class="page" id="page-dash">
+    <div class="dots"><div class="dot on" id="dot0"></div><div class="dot" id="dot1"></div></div>
+    <div class="swipe-hint">›</div>
+    <div class="thirds" id="thirds"></div>
+    <div class="ticker"><span id="quote-el"></span></div>
+  </div>
+
+  <div class="page" id="page-timeline">
+    <div class="tl-wrap">
+      <p class="tl-head">The recovery timeline</p>
+      <p class="tl-sub">What quitting a 20mg vape actually does to your body over time, and where Addi, Josh and Jess currently sit on it.</p>
+      <div class="tl-notstarted" id="notstarted"></div>
+      <div class="tl-line" id="tl-nodes"></div>
+    </div>
+  </div>
+
+</div>
+
+<script>
+/* ---------- data (hardcoded) ---------- */
+const people = [
+  { key:'addi', name:'Addi', quit:new Date('2026-09-05T00:00:00'), color:'var(--addi)' },
+  { key:'josh', name:'Josh', quit:new Date('2026-09-11T00:00:00'), color:'var(--josh)' },
+  { key:'jess', name:'Jess', quit:new Date('2026-07-16T00:00:00'), color:'var(--jess)' },
+];
+const VAPE_COST = 8;      // £ per vape
+const VAPE_LASTS_DAYS = 4; // days one vape lasts
+const COST_PER_DAY = VAPE_COST / VAPE_LASTS_DAYS;
+
+const quotes = [
+  "imagine still vaping when you're 30 💀",
+  "— add your own quote here —",
+  "— add your own quote here —",
+  "— add your own quote here —",
+  "— add your own quote here —",
+];
+
+// Recovery milestones (minutes since quitting), based on nicotine/vaping recovery research.
+const milestones = [
+  { m:0,      t:'Quit moment',        b:'The last vape. Nicotine is still in the bloodstream, but the clock has started.' },
+  { m:20,     t:'Heart rate settles', b:'Resting heart rate starts dropping back toward normal.' },
+  { m:120,    t:'Circulation lifts',  b:'Blood nicotine roughly halves; circulation to fingers and toes starts to pick up.' },
+  { m:720,    t:'Easier breathing',   b:'Carbon monoxide clears from the blood, so it carries oxygen more efficiently.' },
+  { m:1440,   t:'Nicotine is gone',   b:'Nicotine is essentially out of the system — withdrawal tends to peak over the next few days.' },
+  { m:4320,   t:'More energy',        b:'Airways relax further and breathing feels noticeably easier.' },
+  { m:10080,  t:'Taste & smell back', b:'Coughing eases off and senses of taste and smell start sharpening.' },
+  { m:20160,  t:'Lungs measurably improve', b:'Airway healing continues and lung function starts testing better.' },
+  { m:43200,  t:'Cravings ease off',  b:'Acute withdrawal fades into the background; focus and energy keep climbing.' },
+  { m:129600, t:'Big lung gains',     b:'Lung function tests roughly 15–20% better than at the start.' },
+  { m:262800, t:'Steadier mind',      b:'Anxiety and stress levels settle closer to baseline as brain chemistry rebalances.' },
+  { m:525600, t:'Risk keeps falling', b:'Cardiovascular strain keeps unwinding, with benefits still compounding for years.' },
+];
+
+/* ---------- helpers ---------- */
+function pad(n){ return String(n).padStart(2,'0'); }
+function fmtCountdown(ms){
+  const s = Math.max(0, Math.floor(ms/1000));
+  const d = Math.floor(s/86400), h = Math.floor((s%86400)/3600), m = Math.floor((s%3600)/60);
+  if(d>0) return `${d}d ${pad(h)}h ${pad(m)}m`;
+  return `${pad(h)}h ${pad(m)}m ${pad(s%60)}s`;
+}
+
+/* ---------- build dashboard DOM ---------- */
+const thirds = document.getElementById('thirds');
+people.forEach(p=>{
+  const div = document.createElement('div');
+  div.className = 'third';
+  div.style.setProperty('--pcolor', p.color);
+  div.innerHTML = `
+    <p class="p-name">${p.name}</p>
+    <p class="p-state" id="state-${p.key}"></p>
+    <p class="p-timer" id="timer-${p.key}"></p>
+    <p class="p-savings" id="savings-${p.key}"></p>
+  `;
+  thirds.appendChild(div);
+});
+
+/* ---------- build timeline DOM ---------- */
+const nsWrap = document.getElementById('notstarted');
+const nodesWrap = document.getElementById('tl-nodes');
+milestones.forEach((ms,i)=>{
+  const node = document.createElement('div');
+  node.className = 'node';
+  node.id = 'node-'+i;
+  node.innerHTML = `
+    <p class="node-t">${labelForMinutes(ms.m)}</p>
+    <p class="node-title">${ms.t}</p>
+    <p class="node-blurb">${ms.b}</p>
+    <div class="node-people" id="node-people-${i}"></div>
+  `;
+  nodesWrap.appendChild(node);
+});
+function labelForMinutes(m){
+  if(m===0) return 'Day 0';
+  if(m<60) return m+' min';
+  if(m<1440) return Math.round(m/60)+' hr';
+  if(m<10080) return Math.round(m/1440)+' day'+(Math.round(m/1440)===1?'':'s');
+  if(m<43200) return Math.round(m/10080)+' wk';
+  if(m<525600) return Math.round(m/43200)+' mo';
+  return Math.round(m/525600)+' yr';
+}
+
+/* ---------- live update ---------- */
+function update(){
+  const now = new Date();
+
+  // clear timeline chip containers + reached state
+  milestones.forEach((_,i)=>{
+    document.getElementById('node-people-'+i).innerHTML = '';
+    document.getElementById('node-'+i).classList.remove('reached');
+  });
+  nsWrap.innerHTML = '';
+
+  people.forEach(p=>{
+    const diff = now - p.quit;
+    const stateEl = document.getElementById('state-'+p.key);
+    const timerEl = document.getElementById('timer-'+p.key);
+    const savingsEl = document.getElementById('savings-'+p.key);
+
+    if(diff < 0){
+      // hasn't quit yet
+      stateEl.textContent = 'quitting soon';
+      timerEl.innerHTML = `<span>${fmtCountdown(-diff)}</span><span class="unit">until start</span>`;
+      savingsEl.innerHTML = `£<b>0.00</b> saved so far`;
+
+      const chip = document.createElement('div');
+      chip.className = 'ns-chip';
+      chip.innerHTML = `<span><b>${p.name}</b> starts in</span><span class="t">${fmtCountdown(-diff)}</span>`;
+      nsWrap.appendChild(chip);
+      return;
+    }
+
+    stateEl.textContent = 'nic free';
+    const totalMin = diff/60000;
+    const days = Math.floor(totalMin/1440);
+    const hours = Math.floor((totalMin%1440)/60);
+    const mins = Math.floor(totalMin%60);
+    timerEl.innerHTML =
+      `<span>${days}</span><span class="unit">d</span>`+
+      `<span>${pad(hours)}</span><span class="unit">h</span>`+
+      `<span>${pad(mins)}</span><span class="unit">m</span>`;
+
+    const savings = (diff/86400000) * COST_PER_DAY;
+    savingsEl.innerHTML = `£<b>${savings.toFixed(2)}</b> saved so far`;
+
+    // find latest milestone reached
+    let idx = 0;
+    for(let i=0;i<milestones.length;i++){
+      if(totalMin >= milestones[i].m) idx = i; else break;
+    }
+    document.getElementById('node-'+idx).classList.add('reached');
+    const chip = document.createElement('span');
+    chip.className = 'chip';
+    chip.style.setProperty('--ccolor', p.color);
+    chip.textContent = p.name;
+    document.getElementById('node-people-'+idx).appendChild(chip);
+  });
+}
+update();
+setInterval(update, 1000);
+
+/* ---------- quote ticker ---------- */
+let qi = 0;
+const quoteEl = document.getElementById('quote-el');
+function showQuote(){
+  quoteEl.style.animation = 'none';
+  void quoteEl.offsetWidth;
+  quoteEl.style.animation = '';
+  quoteEl.textContent = quotes[qi];
+  qi = (qi+1) % quotes.length;
+}
+showQuote();
+setInterval(showQuote, 4500);
+
+/* ---------- swipe between pages ---------- */
+const app = document.getElementById('app');
+const dot0 = document.getElementById('dot0'), dot1 = document.getElementById('dot1');
+let page = 0, startX = null, startY = null, dragging = false;
+
+function goTo(p){
+  page = p;
+  app.style.transform = `translateX(-${page*50}%)`;
+  dot0.classList.toggle('on', page===0);
+  dot1.classList.toggle('on', page===1);
+}
+
+document.body.addEventListener('touchstart', e=>{
+  startX = e.touches[0].clientX; startY = e.touches[0].clientY; dragging = true;
+}, {passive:true});
+
+document.body.addEventListener('touchend', e=>{
+  if(!dragging) return;
+  dragging = false;
+  const dx = e.changedTouches[0].clientX - startX;
+  const dy = e.changedTouches[0].clientY - startY;
+  if(Math.abs(dx) > 55 && Math.abs(dx) > Math.abs(dy)){
+    if(dx < 0 && page===0) goTo(1);
+    else if(dx > 0 && page===1) goTo(0);
+  }
+}, {passive:true});
+
+// basic desktop support: click dots / arrow keys
+dot0.addEventListener('click', ()=>goTo(0));
+dot1.addEventListener('click', ()=>goTo(1));
+document.addEventListener('keydown', e=>{
+  if(e.key==='ArrowRight') goTo(1);
+  if(e.key==='ArrowLeft') goTo(0);
+});
+</script>
+</body>
+</html>
