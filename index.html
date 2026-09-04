@@ -14,9 +14,9 @@
     --fg:#ECE9E2;
     --fg-dim:#8E978F;
     --line:#22302A;
-    --addi:#7FD9B6;
-    --josh:#E8AC5E;
-    --jess:#C98CE0;
+    --addi:#D94F4F;
+    --josh:#4A80D9;
+    --jess:#E060A0;
   }
   *{box-sizing:border-box; -webkit-tap-highlight-color:transparent;}
   html,body{margin:0; padding:0; height:100%; background:var(--bg); color:var(--fg); overflow:hidden;
@@ -82,8 +82,9 @@
   .ns-chip .t{font-family:'IBM Plex Mono', monospace; font-variant-numeric:tabular-nums; color:var(--fg);}
 
   .tl-line{position:relative; padding-left:22px;}
-  .tl-line::before{
-    content:''; position:absolute; left:5px; top:6px; bottom:6px; width:1px; background:var(--line);
+  .person-line{
+    position:absolute; width:2px; top:6px; height:0;
+    transition:height .4s ease;
   }
   .node{position:relative; padding:0 0 26px 18px;}
   .node::before{
@@ -186,6 +187,17 @@ people.forEach(p=>{
 /* ---------- build timeline DOM ---------- */
 const nsWrap = document.getElementById('notstarted');
 const nodesWrap = document.getElementById('tl-nodes');
+
+// one colored line per person, absolutely positioned inside .tl-line
+people.forEach((p, pi)=>{
+  const line = document.createElement('div');
+  line.className = 'person-line';
+  line.id = 'pline-'+p.key;
+  line.style.background = p.color;
+  line.style.left = (3 + pi*4)+'px'; // 3px, 7px, 11px — three stripes within the dot area
+  nodesWrap.appendChild(line);
+});
+
 milestones.forEach((ms,i)=>{
   const node = document.createElement('div');
   node.className = 'node';
@@ -219,6 +231,8 @@ function update(){
   });
   nsWrap.innerHTML = '';
 
+  const personIdx = {}; // key -> milestone index, or -1 if not started
+
   people.forEach(p=>{
     const diff = now - p.quit;
     const stateEl = document.getElementById('state-'+p.key);
@@ -226,15 +240,14 @@ function update(){
     const savingsEl = document.getElementById('savings-'+p.key);
 
     if(diff < 0){
-      // hasn't quit yet
       stateEl.textContent = 'quitting soon';
       timerEl.innerHTML = `<span>${fmtCountdown(-diff)}</span><span class="unit">until start</span>`;
       savingsEl.innerHTML = `£<b>0.00</b> saved so far`;
-
       const chip = document.createElement('div');
       chip.className = 'ns-chip';
       chip.innerHTML = `<span><b>${p.name}</b> starts in</span><span class="t">${fmtCountdown(-diff)}</span>`;
       nsWrap.appendChild(chip);
+      personIdx[p.key] = -1;
       return;
     }
 
@@ -251,17 +264,28 @@ function update(){
     const savings = (diff/86400000) * COST_PER_DAY;
     savingsEl.innerHTML = `£<b>${savings.toFixed(2)}</b> saved so far`;
 
-    // find latest milestone reached
     let idx = 0;
     for(let i=0;i<milestones.length;i++){
       if(totalMin >= milestones[i].m) idx = i; else break;
     }
+    personIdx[p.key] = idx;
     document.getElementById('node-'+idx).classList.add('reached');
     const chip = document.createElement('span');
     chip.className = 'chip';
     chip.style.setProperty('--ccolor', p.color);
     chip.textContent = p.name;
     document.getElementById('node-people-'+idx).appendChild(chip);
+  });
+
+  // update colored progress lines
+  people.forEach(p=>{
+    const lineEl = document.getElementById('pline-'+p.key);
+    const idx = personIdx[p.key];
+    if(idx < 0){ lineEl.style.height = '0px'; return; }
+    const nodeEl = document.getElementById('node-'+idx);
+    // dot ::before is top:4px, height:9px → center at offsetTop+8.5; line starts at top:6px
+    const h = Math.max(0, nodeEl.offsetTop + 8.5 - 6);
+    lineEl.style.height = h+'px';
   });
 }
 update();
