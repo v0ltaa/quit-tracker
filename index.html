@@ -7,6 +7,7 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&family=IBM+Plex+Sans:wght@400;500;600&display=swap" rel="stylesheet">
+<link rel="apple-touch-icon" id="ati" href="">
 <style>
   :root{
     --bg:#0C1310;
@@ -331,6 +332,36 @@ document.body.addEventListener('touchend', e=>{
     else if(dx > 0 && page===1) goTo(0);
   }
 }, {passive:true});
+
+/* ---------- apple touch icon ---------- */
+(function(){
+  const c = document.createElement('canvas');
+  c.width = c.height = 180;
+  const x = c.getContext('2d');
+  x.fillStyle = '#0C1310';
+  x.fillRect(0, 0, 180, 180);
+  const bars = [
+    { color:'#D94F4F', h:70 },
+    { color:'#E060A0', h:110 },
+    { color:'#4A80D9', h:50 },
+  ];
+  const bw = 30, gap = 14, total = bars.length*bw + (bars.length-1)*gap;
+  let bx = (180-total)/2;
+  bars.forEach(b=>{
+    x.fillStyle = b.color;
+    const r = 4;
+    const by = 148 - b.h;
+    x.beginPath();
+    x.moveTo(bx+r, by); x.lineTo(bx+bw-r, by);
+    x.arcTo(bx+bw, by, bx+bw, by+r, r);
+    x.lineTo(bx+bw, 148); x.lineTo(bx, 148);
+    x.lineTo(bx, by+r);
+    x.arcTo(bx, by, bx+r, by, r);
+    x.closePath(); x.fill();
+    bx += bw+gap;
+  });
+  document.getElementById('ati').href = c.toDataURL('image/png');
+})();
 
 // basic desktop support: click dots / arrow keys
 dot0.addEventListener('click', ()=>goTo(0));
