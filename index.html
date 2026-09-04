@@ -64,8 +64,8 @@
   }
   @keyframes hint{0%,100%{opacity:.15; transform:translateY(-50%) translateX(0);} 50%{opacity:.5; transform:translateY(-50%) translateX(-4px);}}
 
-  .dots{position:absolute; top:calc(10px + env(safe-area-inset-top,0px)); left:50%; transform:translateX(-50%);
-    display:flex; gap:6px; z-index:5;}
+  .dots{position:fixed; top:calc(10px + env(safe-area-inset-top,0px)); left:50%; transform:translateX(-50%);
+    display:flex; gap:6px; z-index:10;}
   .dot{width:5px; height:5px; border-radius:50%; background:var(--fg-dim); opacity:.35;}
   .dot.on{opacity:.95; background:var(--fg);}
 
@@ -107,8 +107,9 @@
 
 <div class="app" id="app">
 
+  <div class="dots"><div class="dot on" id="dot0"></div><div class="dot" id="dot1"></div></div>
+
   <div class="page" id="page-dash">
-    <div class="dots"><div class="dot on" id="dot0"></div><div class="dot" id="dot1"></div></div>
     <div class="swipe-hint">›</div>
     <div class="thirds" id="thirds"></div>
     <div class="ticker"><span id="quote-el"></span></div>
