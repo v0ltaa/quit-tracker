@@ -29,10 +29,13 @@
   #page-timeline{overflow-y:auto; -webkit-overflow-scrolling:touch;}
 
   /* ---------- Page 1: dashboard ---------- */
-  .thirds{height:100%; display:flex; flex-direction:column;}
+  #page-dash{display:flex; flex-direction:column;}
+  .thirds{flex:1 1 auto; min-height:0; display:flex; flex-direction:column;
+    padding-top:env(safe-area-inset-top,0px);}
   .third{
-    flex:1; min-height:0; display:flex; flex-direction:column; justify-content:center;
-    padding:18px 22px; border-bottom:1px solid var(--line); position:relative;
+    flex:1 1 0; min-height:0; overflow:hidden;
+    display:flex; flex-direction:column; justify-content:center;
+    padding:14px 22px; border-bottom:1px solid var(--line); position:relative;
     border-left:3px solid var(--pcolor);
   }
   .third:last-child{border-bottom:none;}
@@ -48,9 +51,9 @@
   .p-savings b{color:var(--fg); font-family:'IBM Plex Mono', monospace; font-weight:500; font-variant-numeric:tabular-nums;}
 
   .ticker{
-    position:absolute; left:0; right:0; bottom:0;
+    flex:0 0 auto;
     padding:11px 22px calc(11px + env(safe-area-inset-bottom, 0px));
-    background:rgba(12,19,16,.86); backdrop-filter:blur(6px);
+    background:var(--bg-2);
     border-top:1px solid var(--line);
     font-size:13px; color:var(--fg-dim); min-height:20px;
   }
@@ -95,8 +98,25 @@
   .node.reached::before{background:var(--fg); border-color:var(--fg);}
   .node-t{font-family:'IBM Plex Mono', monospace; font-size:11px; color:var(--fg-dim); margin:0 0 3px;}
   .node-title{font-size:15px; font-weight:500; margin:0 0 5px;}
-  .node-blurb{font-size:13px; color:var(--fg-dim); line-height:1.5; margin:0;}
-  .node-people{display:flex; gap:6px; flex-wrap:wrap; margin-top:9px;}
+  .node-blurb{font-size:13px; color:var(--fg-dim); line-height:1.55; margin:0;}
+  .node-blurb b{color:var(--fg); font-weight:500;}
+  .node-pts{margin:9px 0 0; padding-left:16px; font-size:12.5px; color:var(--fg-dim); line-height:1.55;}
+  .node-pts li{margin-bottom:5px;}
+  .node-pts li::marker{color:var(--line);}
+  .node-people{display:flex; gap:6px; flex-wrap:wrap; margin-top:11px;}
+
+  .mech{
+    border:1px solid var(--line); border-radius:3px; background:var(--bg-2);
+    padding:14px 15px; margin:0 0 26px;
+  }
+  .mech.note{margin:30px 0 0;}
+  .mech-h{
+    font-size:11px; font-weight:600; margin:0 0 9px; color:var(--fg-dim);
+    letter-spacing:.09em; text-transform:uppercase;
+  }
+  .mech p{font-size:13px; line-height:1.6; color:var(--fg-dim); margin:0 0 11px;}
+  .mech p:last-child{margin-bottom:0;}
+  .mech b{color:var(--fg); font-weight:500;}
   .chip{
     font-size:12px; padding:4px 9px; border-radius:2px; font-weight:500;
     background:color-mix(in srgb, var(--ccolor) 16%, transparent);
@@ -118,10 +138,22 @@
 
   <div class="page" id="page-timeline">
     <div class="tl-wrap">
-      <p class="tl-head">The recovery timeline</p>
-      <p class="tl-sub">What quitting a 20mg vape actually does to your body over time, and where Addi, Josh and Jess currently sit on it.</p>
+      <p class="tl-head">Nicotine Recovery Timeline</p>
+      <p class="tl-sub">A day-by-day guide to what's happening in your body after your last hit — and where Addi, Josh and Jess currently sit on it.</p>
+
+      <div class="mech">
+        <p class="mech-h">The underlying mechanism</p>
+        <p>Nicotine binds to <b>nicotinic acetylcholine receptors (nAChRs)</b> throughout the brain and body — the same receptors that normally respond to acetylcholine, one of the nervous system's core neurotransmitters. Chronic exposure makes these receptors <b>upregulate</b>, increasing in density as the brain compensates for near-constant activation. This is why quitting isn't just willpower: you now have more nicotinic receptors than a non-user, and they're sitting unstimulated, which drives craving and withdrawal until receptor density gradually returns to baseline over several weeks.</p>
+        <p>Nicotine also triggers <b>dopamine release</b> in the mesolimbic reward pathway, via nAChRs on dopamine neurons in the ventral tegmental area. That's what creates the reinforcing "reward" of each hit — and why its absence early on can flatten mood and motivation until your baseline dopamine signalling recalibrates.</p>
+      </div>
+
       <div class="tl-notstarted" id="notstarted"></div>
       <div class="tl-line" id="tl-nodes"></div>
+
+      <div class="mech note">
+        <p class="mech-h">A note on the shape of this curve</p>
+        <p>Recovery isn't linear — most people have a good day followed by a rough one, especially in weeks 1–3, since receptor-level recovery and behavioural craving don't fade at the same rate. That's normal and doesn't mean you're back at square one. The overall trend across weeks is what matters, not any single day.</p>
+      </div>
     </div>
   </div>
 
@@ -131,7 +163,7 @@
 /* ---------- data (hardcoded) ---------- */
 const people = [
   { key:'addi', name:'Addi', quit:new Date('2026-09-05T00:00:00'), color:'var(--addi)' },
-  { key:'josh', name:'Josh', quit:new Date('2026-09-11T00:00:00'), color:'var(--josh)' },
+  { key:'josh', name:'Josh', quit:new Date('2026-09-12T00:00:00'), color:'var(--josh)' },
   { key:'jess', name:'Jess', quit:new Date('2026-07-16T00:00:00'), color:'var(--jess)' },
 ];
 const VAPE_COST = 8;      // £ per vape
@@ -144,20 +176,73 @@ const quotes = [
   '"Just one hit" has entered the chat.',
 ];
 
-// Recovery milestones (minutes since quitting), based on nicotine/vaping recovery research.
+// Recovery milestones (minutes since quitting). `lab` overrides the auto label.
 const milestones = [
-  { m:0,      t:'Quit moment',        b:'The last vape. Nicotine is still in the bloodstream, but the clock has started.' },
-  { m:20,     t:'Heart rate settles', b:'Resting heart rate starts dropping back toward normal.' },
-  { m:120,    t:'Circulation lifts',  b:'Blood nicotine roughly halves; circulation to fingers and toes starts to pick up.' },
-  { m:720,    t:'Easier breathing',   b:'Carbon monoxide clears from the blood, so it carries oxygen more efficiently.' },
-  { m:1440,   t:'Nicotine is gone',   b:'Nicotine is essentially out of the system — withdrawal tends to peak over the next few days.' },
-  { m:4320,   t:'More energy',        b:'Airways relax further and breathing feels noticeably easier.' },
-  { m:10080,  t:'Taste & smell back', b:'Coughing eases off and senses of taste and smell start sharpening.' },
-  { m:20160,  t:'Lungs measurably improve', b:'Airway healing continues and lung function starts testing better.' },
-  { m:43200,  t:'Cravings ease off',  b:'Acute withdrawal fades into the background; focus and energy keep climbing.' },
-  { m:129600, t:'Big lung gains',     b:'Lung function tests roughly 15–20% better than at the start.' },
-  { m:262800, t:'Steadier mind',      b:'Anxiety and stress levels settle closer to baseline as brain chemistry rebalances.' },
-  { m:525600, t:'Risk keeps falling', b:'Cardiovascular strain keeps unwinding, with benefits still compounding for years.' },
+  { m:0, lab:'Day 0', t:'The last hit',
+    b:'Nicotine is still circulating, but the clock has started. Its half-life is only <b>1–2 hours</b> — receptor-level adaptation lags far behind that.' },
+
+  { m:20, lab:'20 min', t:'Heart rate settles',
+    b:'Nicotine is a sympathetic nervous system stimulant, so resting heart rate starts dropping back toward normal as soon as it begins clearing.' },
+
+  { m:480, lab:'8–12 hr', t:'Blood pressure normalises',
+    b:'The vasoconstricting effect of nicotine wears off and blood pressure begins returning to baseline.' },
+
+  { m:1440, lab:'24 hr', t:'Nicotine fully cleared',
+    b:'Nicotine is essentially gone from the bloodstream. This is when <b>receptor understimulation</b> becomes most noticeable — all those upregulated nAChRs are now sitting unstimulated and driving withdrawal signalling.',
+    pts:['Cravings, irritability and difficulty concentrating often peak here'] },
+
+  { m:2880, lab:'Days 2–3', t:'The hardest stretch',
+    b:'Upregulated receptors are still abundant and unstimulated — roughly the <b>physical peak of withdrawal</b> for most people.',
+    pts:[
+      'Headaches, irritability, intense cravings in waves lasting 3–5 minutes',
+      'Taste and smell often noticeably sharper',
+      'Sleep gets disrupted — acetylcholine helps regulate REM, so vivid dreams and trouble falling asleep are common'
+    ] },
+
+  { m:5760, lab:'Days 4–5', t:'Slight easing',
+    b:'Withdrawal symptoms typically start to ease a little, though this varies a lot from person to person.',
+    pts:[
+      'Mood swings and low frustration tolerance still common as dopamine signalling resets',
+      'Energy often still low — this is not unusual'
+    ] },
+
+  { m:8640, lab:'Days 6–7', t:'Cravings thin out',
+    b:'Craving becomes less frequent and shifts from receptor-driven to <b>conditioned</b> — stress, boredom, habitual times of day.',
+    pts:[
+      'A rough patch is common here as the novelty of "just getting through today" wears off',
+      'Circulation keeps improving; hands and feet may feel warmer'
+    ] },
+
+  { m:10080, lab:'Week 2', t:'Receptors start reverting',
+    b:'Nicotinic receptor density begins <b>measurably declining</b> back toward baseline. Physical withdrawal largely subsides for most people by the end of this week.',
+    pts:[
+      'What remains is mostly habitual and psychological craving — routine, stress, association',
+      'Energy and focus noticeably improve as dopamine signalling stabilises'
+    ] },
+
+  { m:20160, lab:'Weeks 3–4', t:'Things stabilise',
+    b:'Acetylcholine and other neurotransmitter systems settle, and the day-to-day gets markedly easier.',
+    pts:[
+      'Sleep quality usually stabilises',
+      'Skin often looks better from improved circulation and oxygenation',
+      'Appetite and taste settle; some weight fluctuation as metabolism readjusts',
+      'Mood swings become much less frequent'
+    ] },
+
+  { m:43200, lab:'1–3 mo', t:'A new baseline',
+    b:'Receptor density continues normalising toward pre-nicotine levels.',
+    pts:[
+      'Energy feels stable and consistent — often better than pre-quit, not just "back to normal", because sleep and circulation gains compound on top of the receptor reset',
+      'Psychological cravings become rare, but can resurface under high stress or around old triggers'
+    ] },
+
+  { m:259200, lab:'6 mo – 1 yr', t:'Cardiovascular unwinding',
+    b:'Strain from chronic nicotine use — elevated heart rate, blood pressure, vascular stiffness — continues to ease.',
+    pts:['Cravings, if they happen at all, are brief and easily dismissed'] },
+
+  { m:525600, lab:'1+ yr', t:'Close to non-user baseline',
+    b:'Cardiovascular markers keep trending toward those of someone who never used.',
+    pts:['Learned reward pathways persist at some low level — which is why relapse after long abstinence can re-establish dependence fast — but for most people active craving becomes a non-issue'] },
 ];
 
 /* ---------- helpers ---------- */
@@ -202,10 +287,14 @@ milestones.forEach((ms,i)=>{
   const node = document.createElement('div');
   node.className = 'node';
   node.id = 'node-'+i;
+  const pts = ms.pts
+    ? `<ul class="node-pts">${ms.pts.map(x=>`<li>${x}</li>`).join('')}</ul>`
+    : '';
   node.innerHTML = `
-    <p class="node-t">${labelForMinutes(ms.m)}</p>
+    <p class="node-t">${ms.lab || labelForMinutes(ms.m)}</p>
     <p class="node-title">${ms.t}</p>
     <p class="node-blurb">${ms.b}</p>
+    ${pts}
     <div class="node-people" id="node-people-${i}"></div>
   `;
   nodesWrap.appendChild(node);
